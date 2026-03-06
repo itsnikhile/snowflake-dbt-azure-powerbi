@@ -118,7 +118,7 @@ class TestTransformations:
         df["gross_profit"] = df["net_revenue"] - df["cost"]
         df["gross_margin_pct"] = df["gross_profit"] / df["net_revenue"].replace(0, np.nan)
         valid = df["gross_margin_pct"].dropna()
-        assert valid.between(-2, 2).all()
+        assert valid.between(-1, 1).all()  # ratios not percentages
 
     def test_monthly_aggregation(self, sample_sales):
         df = sample_sales[sample_sales["status"] != "cancelled"].copy()

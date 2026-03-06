@@ -1,0 +1,19 @@
+snowflake:
+  account: "${SNOWFLAKE_ACCOUNT}"
+  user: "${SNOWFLAKE_USER}"
+  password: "${SNOWFLAKE_PASSWORD}"
+  warehouse: "TRANSFORM_WH_M"
+  database: "ANALYTICS"
+  role: "TRANSFORMER"
+azure:
+  account_name: "${AZURE_STORAGE_ACCOUNT}"
+  account_key: "${AZURE_STORAGE_KEY}"
+  container: "sales-data"
+powerbi:
+  workspace_id: "${PBI_WORKSPACE_ID}"
+  dataset_id: "${PBI_DATASET_ID}"
+  tenant_id: "${AZURE_TENANT_ID}"
+dbt_cloud:
+  account_id: "${DBT_ACCOUNT_ID}"
+  api_token: "${DBT_API_TOKEN}"
+  job_id: "${DBT_JOB_ID}"

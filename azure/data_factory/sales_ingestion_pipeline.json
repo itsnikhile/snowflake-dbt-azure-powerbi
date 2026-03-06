@@ -1,0 +1,124 @@
+{
+  "name": "SalesDataIngestionPipeline",
+  "description": "Orchestrates daily ingestion from Azure Blob → Snowflake → dbt transformations",
+  "properties": {
+    "activities": [
+      {
+        "name": "CheckSourceFreshness",
+        "type": "WebActivity",
+        "description": "Verify new files exist in Azure Blob before triggering pipeline",
+        "typeProperties": {
+          "url": "@concat('https://func-data-validator.azurewebsites.net/api/check?container=', pipeline().parameters.container)",
+          "method": "GET",
+          "headers": {
+            "x-functions-key": "@pipeline().globalParameters.functionKey"
+          }
+        }
+      },
+      {
+        "name": "CopyToSnowflake",
+        "type": "Copy",
+        "description": "Copy Parquet files from Azure Blob to Snowflake RAW schema",
+        "dependsOn": [
+          { "activity": "CheckSourceFreshness", "dependencyConditions": ["Succeeded"] }
+        ],
+        "typeProperties": {
+          "source": {
+            "type": "ParquetSource",
+            "storeSettings": {
+              "type": "AzureBlobStorageReadSettings",
+              "recursive": true,
+              "wildcardFolderPath": "@concat('raw/', formatDateTime(pipeline().TriggerTime, 'yyyy/MM/dd'))",
+              "wildcardFileName": "*.parquet"
+            }
+          },
+          "sink": {
+            "type": "SnowflakeV2Sink",
+            "importSettings": {
+              "type": "SnowflakeImportCopyCommand",
+              "additionalCopyOptions": {
+                "ON_ERROR": "CONTINUE",
+                "PURGE": "FALSE"
+              }
+            }
+          },
+          "parallelCopies": 4,
+          "enableStaging": false
+        },
+        "inputs": [
+          { "referenceName": "DS_AzureBlob_Parquet", "type": "DatasetReference" }
+        ],
+        "outputs": [
+          { "referenceName": "DS_Snowflake_Raw", "type": "DatasetReference" }
+        ]
+      },
+      {
+        "name": "RunDbtTransformations",
+        "type": "DatabricksNotebook",
+        "description": "Trigger dbt Cloud job for staging + mart models",
+        "dependsOn": [
+          { "activity": "CopyToSnowflake", "dependencyConditions": ["Succeeded"] }
+        ],
+        "typeProperties": {
+          "notebookPath": "/dbt/run_transformations",
+          "baseParameters": {
+            "job_id": "@pipeline().globalParameters.dbtJobId",
+            "trigger_source": "adf_pipeline",
+            "run_date": "@formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd')"
+          }
+        }
+      },
+      {
+        "name": "RefreshPowerBIDataset",
+        "type": "WebActivity",
+        "description": "Trigger Power BI dataset refresh via REST API",
+        "dependsOn": [
+          { "activity": "RunDbtTransformations", "dependencyConditions": ["Succeeded"] }
+        ],
+        "typeProperties": {
+          "url": "@concat('https://api.powerbi.com/v1.0/myorg/groups/', pipeline().globalParameters.pbiWorkspaceId, '/datasets/', pipeline().globalParameters.pbiDatasetId, '/refreshes')",
+          "method": "POST",
+          "headers": {
+            "Authorization": "@concat('Bearer ', activity('GetPowerBIToken').output.access_token)",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "notifyOption": "MailOnFailure"
+          }
+        }
+      },
+      {
+        "name": "NotifyOnFailure",
+        "type": "WebActivity",
+        "description": "Send Slack alert on pipeline failure",
+        "dependsOn": [
+          { "activity": "CopyToSnowflake", "dependencyConditions": ["Failed"] },
+          { "activity": "RunDbtTransformations", "dependencyConditions": ["Failed"] }
+        ],
+        "typeProperties": {
+          "url": "@pipeline().globalParameters.slackWebhookUrl",
+          "method": "POST",
+          "body": {
+            "text": "@concat('❌ ADF Pipeline FAILED: ', pipeline().Pipeline, ' | Run ID: ', pipeline().RunId, ' | Error: ', activity('CopyToSnowflake').error.message)"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "container": { "type": "string", "defaultValue": "sales-data" },
+      "run_date":  { "type": "string", "defaultValue": "" }
+    },
+    "triggers": [
+      {
+        "name": "DailyTrigger",
+        "type": "ScheduleTrigger",
+        "recurrence": {
+          "frequency": "Day",
+          "interval": 1,
+          "startTime": "2024-01-01T02:00:00Z",
+          "timeZone": "UTC"
+        }
+      }
+    ]
+  }
+}

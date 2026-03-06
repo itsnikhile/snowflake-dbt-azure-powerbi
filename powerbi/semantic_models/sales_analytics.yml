@@ -1,0 +1,185 @@
+# Power BI Semantic Model — Sales Analytics
+# This file documents the semantic model connecting to Snowflake via DirectQuery.
+# Deploy using: Power BI Premium / Fabric workspace with Snowflake connector.
+
+name: SalesAnalytics
+description: "Enterprise sales analytics semantic model built on Snowflake + dbt Gold layer"
+version: "2.0"
+mode: DirectQuery  # Use Import for <100M rows, DirectQuery for larger datasets
+
+# ── Snowflake Connection ─────────────────────────────────────────────────────
+connection:
+  type: Snowflake
+  server: "${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com"
+  database: ANALYTICS
+  schema: SEMANTIC
+  warehouse: POWERBI_WH
+  role: POWERBI_READER
+  authentication: ServicePrincipal  # Use AAD service principal in production
+
+# ── Tables ───────────────────────────────────────────────────────────────────
+tables:
+  - name: Sales
+    source: SEMANTIC.VW_SALES_FACT
+    description: "Central sales fact table"
+    columns:
+      - name: sale_id
+        data_type: string
+        is_hidden: true
+      - name: order_date
+        data_type: date
+        format_string: "YYYY-MM-DD"
+      - name: net_revenue
+        data_type: decimal
+        format_string: "$#,##0.00"
+        summarize_by: sum
+      - name: gross_profit
+        data_type: decimal
+        format_string: "$#,##0.00"
+        summarize_by: sum
+      - name: gross_margin_pct
+        data_type: decimal
+        format_string: "0.00%"
+        summarize_by: average
+      - name: quantity
+        data_type: integer
+        summarize_by: sum
+      - name: discount_pct
+        data_type: decimal
+        format_string: "0.00%"
+        summarize_by: average
+
+  - name: Customers
+    source: SEMANTIC.VW_CUSTOMER_DIM
+    description: "Customer dimension with RFM segmentation"
+    columns:
+      - name: customer_id
+        data_type: string
+        is_hidden: true
+      - name: full_name
+        data_type: string
+      - name: customer_segment
+        data_type: string
+      - name: lifetime_tier
+        data_type: string
+      - name: lifetime_value
+        data_type: decimal
+        format_string: "$#,##0"
+        summarize_by: sum
+      - name: country
+        data_type: string
+        data_category: Country
+      - name: region
+        data_type: string
+
+  - name: Date
+    source: MARTS.DIM_DATE
+    description: "Date dimension table"
+    is_date_table: true
+    date_column: date_day
+    columns:
+      - name: date_day
+        data_type: date
+      - name: fiscal_year
+        data_type: integer
+      - name: fiscal_quarter
+        data_type: string
+      - name: month_name
+        data_type: string
+      - name: is_weekday
+        data_type: boolean
+        is_hidden: true
+
+# ── Relationships ─────────────────────────────────────────────────────────────
+relationships:
+  - from_table: Sales
+    from_column: customer_id
+    to_table: Customers
+    to_column: customer_id
+    cardinality: ManyToOne
+    cross_filter: Single
+
+  - from_table: Sales
+    from_column: order_date
+    to_table: Date
+    to_column: date_day
+    cardinality: ManyToOne
+    cross_filter: Both
+
+# ── Measures (DAX) ────────────────────────────────────────────────────────────
+measures:
+  - name: Total Revenue
+    table: Sales
+    expression: "SUM(Sales[net_revenue])"
+    format_string: "$#,##0"
+    description: "Sum of net revenue after discounts"
+
+  - name: Total Orders
+    table: Sales
+    expression: "COUNTROWS(Sales)"
+    format_string: "#,##0"
+
+  - name: Avg Order Value
+    table: Sales
+    expression: "DIVIDE([Total Revenue], [Total Orders])"
+    format_string: "$#,##0.00"
+
+  - name: Gross Margin %
+    table: Sales
+    expression: "DIVIDE(SUM(Sales[gross_profit]), SUM(Sales[net_revenue]))"
+    format_string: "0.00%"
+
+  - name: Revenue MoM Growth
+    table: Sales
+    expression: |
+      VAR CurrentMonth = [Total Revenue]
+      VAR PrevMonth = CALCULATE(
+          [Total Revenue],
+          DATEADD('Date'[date_day], -1, MONTH)
+      )
+      RETURN DIVIDE(CurrentMonth - PrevMonth, PrevMonth)
+    format_string: "0.00%"
+
+  - name: Revenue YoY Growth
+    table: Sales
+    expression: |
+      VAR CurrentYear = [Total Revenue]
+      VAR PrevYear = CALCULATE(
+          [Total Revenue],
+          DATEADD('Date'[date_day], -1, YEAR)
+      )
+      RETURN DIVIDE(CurrentYear - PrevYear, PrevYear)
+    format_string: "0.00%"
+
+  - name: Cumulative Revenue
+    table: Sales
+    expression: |
+      CALCULATE(
+          [Total Revenue],
+          DATESYTD('Date'[date_day])
+      )
+    format_string: "$#,##0"
+
+  - name: Customer Count
+    table: Customers
+    expression: "COUNTROWS(Customers)"
+    format_string: "#,##0"
+
+  - name: Champions %
+    table: Customers
+    expression: |
+      DIVIDE(
+          COUNTROWS(FILTER(Customers, Customers[customer_segment] = "Champions")),
+          COUNTROWS(Customers)
+      )
+    format_string: "0.0%"
+
+# ── Row-Level Security ────────────────────────────────────────────────────────
+row_level_security:
+  - role: RegionalManager
+    table: Sales
+    filter: "[territory_region] = USERPRINCIPALNAME()"
+    description: "Managers see only their region's data"
+
+  - role: Executive
+    description: "Full access — no filters applied"

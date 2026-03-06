@@ -1,0 +1,90 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#080810"/>
+      <stop offset="100%" style="stop-color:#12121f"/>
+    </linearGradient>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#29B5E8"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="320" fill="url(#bg)"/>
+  <!-- grid -->
+  <pattern id="grid" width="60" height="40" patternUnits="userSpaceOnUse">
+    <circle cx="30" cy="20" r="1" fill="#ffffff" opacity="0.04"/>
+  </pattern>
+  <rect width="1200" height="320" fill="url(#grid)"/>
+  <!-- top bar -->
+  <rect x="0" y="0" width="1200" height="5" fill="#29B5E8"/>
+  <!-- left stripe -->
+  <rect x="0" y="0" width="6" height="320" fill="#29B5E8" opacity="0.8"/>
+  <!-- title -->
+  <text x="600" y="32" font-family="monospace" font-size="14" font-weight="bold" fill="#29B5E8" text-anchor="middle">ENTERPRISE ANALYTICS PIPELINE — Snowflake + dbt + Azure + Power BI</text>
+
+  <!-- Layer 1: Azure Blob -->
+  <rect x="40" y="80" width="140" height="65" rx="6" fill="#0078D4" fill-opacity="0.12" stroke="#0078D4" stroke-width="2"/>
+  <text x="110" y="106" font-family="monospace" font-size="11" fill="#0078D4" text-anchor="middle" font-weight="bold">AZURE BLOB</text>
+  <text x="110" y="122" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">Raw Parquet</text>
+  <text x="110" y="136" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">10TB+/day</text>
+
+  <!-- ADF -->
+  <rect x="40" y="175" width="140" height="55" rx="6" fill="#0078D4" fill-opacity="0.08" stroke="#0078D4" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="110" y="200" font-family="monospace" font-size="11" fill="#0078D4" text-anchor="middle">AZURE DATA</text>
+  <text x="110" y="216" font-family="monospace" font-size="11" fill="#0078D4" text-anchor="middle">FACTORY</text>
+
+  <!-- Arrow -->
+  <line x1="180" y1="112" x2="218" y2="112" stroke="#29B5E8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Snowflake RAW -->
+  <rect x="220" y="80" width="140" height="65" rx="6" fill="#29B5E8" fill-opacity="0.12" stroke="#29B5E8" stroke-width="2"/>
+  <text x="290" y="106" font-family="monospace" font-size="11" fill="#29B5E8" text-anchor="middle" font-weight="bold">SNOWFLAKE</text>
+  <text x="290" y="122" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">RAW Schema</text>
+  <text x="290" y="136" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">Bronze Layer</text>
+
+  <!-- Arrow -->
+  <line x1="360" y1="112" x2="398" y2="112" stroke="#29B5E8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- dbt Silver -->
+  <rect x="400" y="80" width="140" height="65" rx="6" fill="#FF694B" fill-opacity="0.12" stroke="#FF694B" stroke-width="2"/>
+  <text x="470" y="106" font-family="monospace" font-size="11" fill="#FF694B" text-anchor="middle" font-weight="bold">dbt STAGING</text>
+  <text x="470" y="122" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">Silver Layer</text>
+  <text x="470" y="136" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">stg_sales ✓ tests</text>
+
+  <!-- Arrow -->
+  <line x1="540" y1="112" x2="578" y2="112" stroke="#FF694B" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- dbt Marts -->
+  <rect x="580" y="80" width="140" height="65" rx="6" fill="#FFD700" fill-opacity="0.12" stroke="#FFD700" stroke-width="2"/>
+  <text x="650" y="106" font-family="monospace" font-size="11" fill="#FFD700" text-anchor="middle" font-weight="bold">dbt MARTS</text>
+  <text x="650" y="122" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">Gold Layer</text>
+  <text x="650" y="136" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">fct_sales + RFM</text>
+
+  <!-- Arrow -->
+  <line x1="720" y1="112" x2="758" y2="112" stroke="#FFD700" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Semantic Views -->
+  <rect x="760" y="80" width="140" height="65" rx="6" fill="#55efc4" fill-opacity="0.12" stroke="#55efc4" stroke-width="2"/>
+  <text x="830" y="101" font-family="monospace" font-size="11" fill="#55efc4" text-anchor="middle" font-weight="bold">SEMANTIC</text>
+  <text x="830" y="117" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">Snowflake Views</text>
+  <text x="830" y="133" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">DirectQuery ready</text>
+
+  <!-- Arrow -->
+  <line x1="900" y1="112" x2="938" y2="112" stroke="#55efc4" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Power BI -->
+  <rect x="940" y="65" width="220" height="100" rx="6" fill="#F2C811" fill-opacity="0.12" stroke="#F2C811" stroke-width="2"/>
+  <text x="1050" y="90" font-family="monospace" font-size="11" fill="#F2C811" text-anchor="middle" font-weight="bold">POWER BI</text>
+  <text x="1050" y="108" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">Semantic Model</text>
+  <text x="1050" y="123" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">20+ DAX Measures</text>
+  <text x="1050" y="138" font-family="monospace" font-size="10" fill="#7b7a99" text-anchor="middle">Row-Level Security</text>
+  <text x="1050" y="153" font-family="monospace" font-size="10" fill="#F2C811" text-anchor="middle">DirectQuery</text>
+
+  <!-- Stats bar -->
+  <rect x="40" y="258" width="1120" height="40" rx="4" fill="#000000" fill-opacity="0.3" stroke="#29B5E8" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="150" y="283" font-family="monospace" font-size="11" fill="#29B5E8" text-anchor="middle">❄ Snowflake DWH</text>
+  <text x="320" y="283" font-family="monospace" font-size="11" fill="#FF694B" text-anchor="middle">🔄 dbt 12 Models</text>
+  <text x="490" y="283" font-family="monospace" font-size="11" fill="#0078D4" text-anchor="middle">☁ Azure ADF</text>
+  <text x="660" y="283" font-family="monospace" font-size="11" fill="#FFD700" text-anchor="middle">📊 20+ DAX Measures</text>
+  <text x="840" y="283" font-family="monospace" font-size="11" fill="#55efc4" text-anchor="middle">🔒 Row-Level Security</text>
+  <text x="1020" y="283" font-family="monospace" font-size="11" fill="#F2C811" text-anchor="middle">⚡ p99 &lt;3s Queries</text>
+</svg>

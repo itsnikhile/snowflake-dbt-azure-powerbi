@@ -1,0 +1,163 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// DAX Measures Library — Sales Analytics Power BI Report
+// Connect to: Snowflake SEMANTIC schema via DirectQuery
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ── Revenue Measures ──────────────────────────────────────────────────────────
+
+Total Revenue =
+SUM(Sales[net_revenue])
+
+Total Gross Profit =
+SUM(Sales[gross_profit])
+
+Total Orders =
+COUNTROWS(Sales)
+
+Total Units Sold =
+SUM(Sales[quantity])
+
+Avg Order Value =
+DIVIDE([Total Revenue], [Total Orders], 0)
+
+Gross Margin % =
+DIVIDE([Total Gross Profit], [Total Revenue], 0)
+
+Total Discounts Given =
+SUM(Sales[discount_amount])
+
+Discount Rate % =
+DIVIDE([Total Discounts Given], SUM(Sales[total_amount]), 0)
+
+
+// ── Time Intelligence ─────────────────────────────────────────────────────────
+
+Revenue MTD =
+CALCULATE([Total Revenue], DATESMTD('Date'[date_day]))
+
+Revenue QTD =
+CALCULATE([Total Revenue], DATESQTD('Date'[date_day]))
+
+Revenue YTD =
+CALCULATE([Total Revenue], DATESYTD('Date'[date_day]))
+
+Revenue PYTD =
+CALCULATE(
+    [Revenue YTD],
+    SAMEPERIODLASTYEAR('Date'[date_day])
+)
+
+Revenue MoM Growth =
+VAR CurrentMonth = [Total Revenue]
+VAR PrevMonth =
+    CALCULATE(
+        [Total Revenue],
+        DATEADD('Date'[date_day], -1, MONTH)
+    )
+RETURN
+    DIVIDE(CurrentMonth - PrevMonth, ABS(PrevMonth), BLANK())
+
+Revenue YoY Growth =
+VAR CurrentYear = [Total Revenue]
+VAR PrevYear =
+    CALCULATE(
+        [Total Revenue],
+        DATEADD('Date'[date_day], -1, YEAR)
+    )
+RETURN
+    DIVIDE(CurrentYear - PrevYear, ABS(PrevYear), BLANK())
+
+Revenue vs Budget =
+VAR ActualRev = [Total Revenue]
+VAR BudgetRev =
+    CALCULATE(
+        SUM(Budget[budget_amount]),
+        USERELATIONSHIP(Budget[period_date], 'Date'[date_day])
+    )
+RETURN
+    DIVIDE(ActualRev - BudgetRev, BudgetRev, BLANK())
+
+Cumulative Revenue =
+CALCULATE(
+    [Total Revenue],
+    FILTER(
+        ALL('Date'),
+        'Date'[date_day] <= MAX('Date'[date_day])
+    )
+)
+
+
+// ── Customer Measures ─────────────────────────────────────────────────────────
+
+Total Customers =
+DISTINCTCOUNT(Sales[customer_id])
+
+New Customers =
+CALCULATE(
+    DISTINCTCOUNT(Sales[customer_id]),
+    FILTER(
+        Customers,
+        Customers[first_order_date] >= MIN('Date'[date_day]) &&
+        Customers[first_order_date] <= MAX('Date'[date_day])
+    )
+)
+
+Returning Customers =
+[Total Customers] - [New Customers]
+
+Customer Retention Rate =
+DIVIDE([Returning Customers], [Total Customers], 0)
+
+Revenue per Customer =
+DIVIDE([Total Revenue], [Total Customers], 0)
+
+Champions % =
+DIVIDE(
+    CALCULATE(
+        COUNTROWS(Customers),
+        Customers[customer_segment] = "Champions"
+    ),
+    COUNTROWS(Customers),
+    0
+)
+
+At Risk Customers =
+CALCULATE(
+    COUNTROWS(Customers),
+    Customers[customer_segment] = "At Risk"
+)
+
+
+// ── Product Measures ──────────────────────────────────────────────────────────
+
+Top Product Revenue =
+MAXX(
+    TOPN(1,
+        SUMMARIZE(Sales, Sales[product_id], "Rev", [Total Revenue]),
+        [Rev]
+    ),
+    [Rev]
+)
+
+Products Sold =
+DISTINCTCOUNT(Sales[product_id])
+
+
+// ── Target / KPI Measures ─────────────────────────────────────────────────────
+
+Revenue Target Attainment =
+VAR Target = SUM(Budget[budget_amount])
+VAR Actual = [Total Revenue]
+RETURN
+    DIVIDE(Actual, Target, BLANK())
+
+KPI Status =
+VAR Attainment = [Revenue Target Attainment]
+RETURN
+    SWITCH(
+        TRUE(),
+        Attainment >= 1.0,  "On Track",
+        Attainment >= 0.85, "At Risk",
+        "Behind"
+    )
